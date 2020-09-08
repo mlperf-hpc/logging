@@ -3,4 +3,4 @@
     NAME:  submission_benchmark
     REQ:   EXACTLY_ONE
     CHECK: " v['value'] in ['cosmoflow', 'deepcam'] "
-    #POST:  " enqueue_config('hpc_0.5.0/closed_{}.yaml'.format(v['value'])) "
+    POST:  " enqueue_config('hpc_0.5.0/closed_{}.yaml'.format(v['value'])) "
