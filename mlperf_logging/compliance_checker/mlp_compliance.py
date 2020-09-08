@@ -282,7 +282,7 @@ class ComplianceChecker:
 
 def rule_choices():
     return [ x for x in os.listdir(os.path.dirname(__file__))
-            if re.match('\d+\.\d+\.\d+', x) ]
+            if re.match('(\w+_)?\d+\.\d+\.\d+', x) ]
 
 
 def get_parser():
