@@ -10,18 +10,7 @@ import sys
 
 from ..compliance_checker import mlp_compliance
 
-_ALLOWED_BENCHMARKS = [
-    'bert',
-    'dlrm',
-    'gnmt',
-    'maskrcnn',
-    'minigo',
-    'resnet',
-    'ssd',
-    'transformer',
-]
-
-_EXPECTED_RESULT_FILE_COUNTS = {
+_TRAINING_RESULT_FILE_COUNTS = {
     'bert': 10,
     'dlrm': 5,
     'gnmt': 10,
@@ -32,6 +21,10 @@ _EXPECTED_RESULT_FILE_COUNTS = {
     'transformer': 10,
 }
 
+_HPC_RESULT_FILE_COUNTS = {
+    'deepcam': 5,
+    'cosmoflow': 10,
+}
 
 def _get_sub_folders(folder):
     sub_folders = [os.path.join(folder, sub_folder)
@@ -45,7 +38,8 @@ def _print_divider_bar():
     print('------------------------------')
 
 
-def check_training_result_files(folder, ruleset, quiet, werror):
+def check_training_result_files(folder, ruleset, quiet, werror,
+                                benchmark_file_counts):
     """Checks all result files for compliance.
 
     Args:
@@ -62,7 +56,7 @@ def check_training_result_files(folder, ruleset, quiet, werror):
             system = folder_parts[-2]
 
             # If it is not a recognized benchmark, skip further checks.
-            if benchmark not in _ALLOWED_BENCHMARKS:
+            if benchmark not in benchmark_file_counts.keys():
                 print('Skipping benchmark: {}'.format(benchmark))
                 continue
 
@@ -82,9 +76,9 @@ def check_training_result_files(folder, ruleset, quiet, werror):
 
             # If the organization did submit results for this benchmark, the number
             # of result files must be an exact number.
-            if len(result_files) != _EXPECTED_RESULT_FILE_COUNTS[benchmark]:
+            if len(result_files) != benchmark_file_counts[benchmark]:
                 print('Expected {} runs, but detected {} runs.'.format(
-                    _EXPECTED_RESULT_FILE_COUNTS[benchmark],
+                    benchmark_file_counts[benchmark],
                     len(result_files)))
 
             errors_found = 0
@@ -125,7 +119,19 @@ def check_training_package(folder, ruleset, quiet, werror):
         folder: The folder for a submission package.
         ruleset: The ruleset such as 0.6.0 or 0.7.0.
     """
-    check_training_result_files(folder, ruleset, quiet, werror)
+    check_training_result_files(folder, ruleset, quiet, werror,
+                                benchmark_file_counts=_TRAINING_RESULT_FILE_COUNTS)
+
+def check_hpc_package(folder, ruleset, quiet, werror):
+    """Checks an hpc package for compliance.
+
+    Args:
+        folder: The folder for a submission package.
+        ruleset: The ruleset such as 0.5.0.
+    """
+    ruleset = 'hpc_' + ruleset
+    check_training_result_files(folder, ruleset, quiet, werror,
+                                benchmark_file_counts=_HPC_RESULT_FILE_COUNTS)
 
 
 def get_parser():
@@ -136,9 +142,9 @@ def get_parser():
 
     parser.add_argument('folder', type=str,
                     help='the folder for a submission package')
-    parser.add_argument('usage', type=str,
+    parser.add_argument('usage', type=str, choices=['training', 'hpc'],
                     help='the usage such as training, inference_edge, inference_server')
-    parser.add_argument('ruleset', type=str,
+    parser.add_argument('ruleset', type=str, choices=['0.5.0', '0.6.0', '0.7.0'],
                     help='the ruleset such as 0.6.0, 0.7.0')
     parser.add_argument('--werror', action='store_true',
                     help='Treat warnings as errors')
@@ -152,14 +158,10 @@ def main():
     parser = get_parser()
     args = parser.parse_args()
 
-    if args.usage != 'training':
-        print('Usage {} is not yet supported.'.format(args.usage))
-        sys.exit(1)
-    if args.ruleset not in ['0.6.0', '0.7.0']:
-        print('Ruleset {} is not yet supported.'.format(args.ruleset))
-        sys.exit(1)
-
-    check_training_package(args.folder, args.ruleset, args.quiet, args.werror)
+    if args.usage == 'training':
+        check_training_package(args.folder, args.ruleset, args.quiet, args.werror)
+    elif args.usage == 'hpc':
+        check_hpc_package(args.folder, args.ruleset, args.quiet, args.werror)
 
 
 if __name__ == '__main__':
