@@ -67,6 +67,8 @@ INIT_START = "init_start"
 INIT_STOP = "init_stop"
 RUN_START = "run_start"
 RUN_STOP = "run_stop"
+STAGING_START = "staging_start"
+STAGING_STOP = "staging_stop"
 
 # Log keys - common run info
 CACHE_CLEAR = "cache_clear"
