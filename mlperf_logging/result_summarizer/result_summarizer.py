@@ -14,7 +14,7 @@ import sys
 
 from ..compliance_checker import mlp_compliance
 
-_ALLOWED_BENCHMARKS_V06 = [
+_TRAINING_ALLOWED_BENCHMARKS_V06 = [
     'resnet',
     'ssd',
     'maskrcnn',
@@ -24,7 +24,7 @@ _ALLOWED_BENCHMARKS_V06 = [
     'minigo',
 ]
 
-_ALLOWED_BENCHMARKS_V07 = [
+_TRAINING_ALLOWED_BENCHMARKS_V07 = [
     'bert',
     'dlrm',
     'gnmt',
@@ -33,6 +33,11 @@ _ALLOWED_BENCHMARKS_V07 = [
     'resnet',
     'ssd',
     'transformer',
+]
+
+_HPC_ALLOWED_BENCHMARKS_V05 = [
+    'cosmoflow',
+    'deepcam',
 ]
 
 _RUN_START_REGEX = r':::MLLOG (.*"run_start",.*)'
@@ -89,21 +94,20 @@ def _benchmark_alias(benchmark):
     return benchmark
 
 
-def _ruleset_url_prefix(ruleset):
+def _ruleset_url_prefix(usage, ruleset):
     short_ruleset = ruleset.replace('.0', '')
-    return 'https://github.com/mlperf/training_results_v{}'.format(short_ruleset)
+    return f'https://github.com/mlperf/{usage}_results_v{short_ruleset}'
 
-
-def _details_url(system_desc, ruleset):
+def _details_url(usage, ruleset, system_desc):
     return '{ruleset_prefix}/blob/master/{submitter}/systems/{system}.json'.format(
-        ruleset_prefix=_ruleset_url_prefix(ruleset),
+        ruleset_prefix=_ruleset_url_prefix(usage, ruleset),
         submitter=system_desc['submitter'],
         system=_linkable_system_name(system_desc))
 
 
-def _code_url(system_desc, ruleset):
+def _code_url(usage, ruleset, system_desc):
     return '{ruleset_prefix}/blob/master/{submitter}/benchmarks'.format(
-        ruleset_prefix=_ruleset_url_prefix(ruleset),
+        ruleset_prefix=_ruleset_url_prefix(usage, ruleset),
         submitter=system_desc['submitter'])
 
 
@@ -115,10 +119,13 @@ def _row_key(system_desc):
     return system_name
 
 
-def _read_mlperf_score(result_file, ruleset):
+def _read_mlperf_score(result_file, usage, ruleset):
     with open(result_file, 'r') as f:
         result = f.read()
 
+    # Special naming of HPC ruleset
+    if usage == 'hpc':
+        ruleset = f'hpc_{ruleset}'
     config_file = '{ruleset}/common.yaml'.format(ruleset=ruleset)
     checker = mlp_compliance.make_checker(
         ruleset=ruleset,
@@ -174,11 +181,12 @@ def _is_organization_folder(folder):
     return True
 
 
-def summarize_results(folder, ruleset):
+def summarize_results(folder, usage, ruleset):
     """Summarizes a set of results.
 
     Args:
         folder: The folder for a submission package.
+        usage: The usage such as training, hpc.
         ruleset: The ruleset such as 0.6.0 or 0.7.0.
     """
     systems_folder = os.path.join(folder, 'systems')
@@ -248,7 +256,7 @@ def summarize_results(folder, ruleset):
             scores = []
             dropped_scores = 0
             for result_file in result_files:
-                score = _read_mlperf_score(result_file, ruleset)
+                score = _read_mlperf_score(result_file, usage, ruleset)
                 if score is None:
                     dropped_scores += 1
                 else:
@@ -265,10 +273,12 @@ def summarize_results(folder, ruleset):
             benchmark_scores[benchmark] = _compute_olympic_average(scores, dropped_scores)
 
         # Construct scores portion of the row.
-        if ruleset == '0.6.0':
-            allowed_benchmarks = _ALLOWED_BENCHMARKS_V06
-        elif ruleset == '0.7.0':
-            allowed_benchmarks = _ALLOWED_BENCHMARKS_V07
+        if usage == 'training' and ruleset == '0.6.0':
+            allowed_benchmarks = _TRAINING_ALLOWED_BENCHMARKS_V06
+        elif usage == 'training' and ruleset == '0.7.0':
+            allowed_benchmarks = _TRAINING_ALLOWED_BENCHMARKS_V07
+        elif usage == 'hpc' and ruleset == '0.5.0':
+            allowed_benchmarks = _HPC_ALLOWED_BENCHMARKS_V05
         for benchmark in allowed_benchmarks:
             if benchmark in benchmark_scores:
                 row += '{:.2f},'.format(benchmark_scores[benchmark])
@@ -276,8 +286,8 @@ def summarize_results(folder, ruleset):
                 row += ','
 
         # Construct postfix portion of the row.
-        row += '{},'.format(_details_url(desc, ruleset))
-        row += '{},'.format(_code_url(desc, ruleset))
+        row += '{},'.format(_details_url(usage, ruleset, desc))
+        row += '{},'.format(_code_url(usage, ruleset, desc))
 
         rows[_row_key(desc)] = row
 
@@ -294,9 +304,9 @@ def get_parser():
 
     parser.add_argument('folder', type=str,
                     help='the folder for a submission package')
-    parser.add_argument('usage', type=str,
+    parser.add_argument('usage', type=str, choices=['training', 'hpc'],
                     help='the usage such as training, inference_edge, inference_server')
-    parser.add_argument('ruleset', type=str,
+    parser.add_argument('ruleset', type=str, choices=['0.5.0', '0.6.0', '0.7.0'],
                     help='the ruleset such as 0.6.0 or 0.7.0')
     parser.add_argument('--werror', action='store_true',
                     help='Treat warnings as errors')
@@ -309,13 +319,6 @@ def get_parser():
 def main():
     parser = get_parser()
     args = parser.parse_args()
-
-    if args.usage != 'training':
-        print('Usage {} is not supported.'.format(args.usage))
-        sys.exit(1)
-    if args.ruleset not in ['0.6.0', '0.7.0']:
-        print('Ruleset {} is not supported.'.format(args.ruleset))
-        sys.exit(1)
 
     multiple_folders_regex = r'(.*)\{(.*)\}'
     multiple_folders = re.search(multiple_folders_regex, args.folder)
@@ -332,10 +335,10 @@ def main():
         print('Detected organizations: {}'.format(', '.join(orgs)))
         for org in orgs:
             org_folder = path_prefix + org
-            summarize_results(org_folder, args.ruleset)
+            summarize_results(org_folder, args.usage, args.ruleset)
     else:
         # Parse results for single organization.
-        summarize_results(args.folder, args.ruleset)
+        summarize_results(args.folder, args.usage, args.ruleset)
 
 
 if __name__ == '__main__':
