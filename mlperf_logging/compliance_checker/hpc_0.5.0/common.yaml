@@ -20,7 +20,7 @@
             'init_stopped' : False,
             'run_started' : False,
             'run_stopped' : False,
-            'stage_started': False,
+            'staging_started': False,
             'in_epoch' : False,
             'last_epoch' : 0,
             'in_block' : False,
@@ -98,15 +98,15 @@
 
 # HPC requires data staging to be included in run timing
 - KEY:
-    NAME: stage_start
+    NAME: staging_start
     CHECK:
         - "s['run_started']"
-    POST: " s['stage_started'] = True "
+    POST: " s['staging_started'] = True "
 
 - KEY:
-    NAME: stage_stop
+    NAME: staging_stop
     CHECK:
-        - "s['stage_started']"
+        - "s['staging_started']"
 
 # FIXME: check epoch_count value match
 - KEY:
