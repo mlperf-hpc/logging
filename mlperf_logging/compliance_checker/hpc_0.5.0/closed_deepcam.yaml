@@ -1,4 +1,35 @@
 - KEY:
+    NAME:  global_batch_size
+    REQ:   EXACTLY_ONE
+    CHECK: " v['value'] > 0"
+
+- KEY:
+    NAME:  opt_name
+    REQ:   EXACTLY_ONE
+    CHECK: " v['value'] in ['lamb', 'LAMB', 'AdamW', 'adamw'] "
+
+- KEY:
+    NAME:  opt_base_learning_rate
+    REQ:   EXACTLY_ONE
+    CHECK: " v['value'] >= 0."
+
+- KEY:
+    NAME:  opt_learning_rate_warmup_steps
+    REQ:   EXACTLY_ONE
+    CHECK: " v['value'] >= 0"
+
+- KEY:
+    NAME:  opt_learning_rate_warmup_factor
+    REQ:   EXACTLY_ONE
+    CHECK: " v['value'] >= 0."
+
+
+- KEY:
+    NAME:  opt_epsilon
+    REQ:   EXACTLY_ONE
+    CHECK: " v['value'] in [1.e-6, 1.e-8]"
+
+- KEY:
     NAME:  eval_accuracy
     REQ:   AT_LEAST_ONE
     CHECK:
