@@ -21,7 +21,7 @@
 - KEY:
     NAME:  opt_learning_rate_warmup_factor
     REQ:   EXACTLY_ONE
-    CHECK: " v['value'] >= 0. and v['value'] <= 1."
+    CHECK: " v['value'] >= 0."
 
 - KEY:
     NAME:  opt_learning_rate_decay_boundary_epochs
