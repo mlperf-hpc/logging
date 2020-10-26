@@ -55,11 +55,11 @@
     CHECK: " v['value'] in ['cosmoflow', 'deepcam'] "
 
 # at least one record should be found, but any found records must pass the test
-- KEY:
-    NAME:  cache_clear
-    REQ:   AT_LEAST_ONE
-    CHECK:
-        - "'value' in v"
+#- KEY:
+#    NAME:  cache_clear
+#    REQ:   AT_LEAST_ONE
+#    CHECK:
+#        - "'value' in v"
 
 # frequency not checked
 - KEY:
@@ -93,7 +93,7 @@
     REQ:   EXACTLY_ONE
     CHECK:
         - "s['run_started']"
-        - "'status' in v['metadata']"
+        #- "'status' in v['metadata']"
     POST:  " s['run_stopped'] = True "
 
 # HPC requires data staging to be included in run timing
@@ -140,14 +140,14 @@
 - KEY:
     NAME:  eval_start
     REQ:   AT_LEAST_ONE_OR(block_start)
-    CHECK:
-        - "'epoch_num' in v['metadata']"
+    #CHECK:
+    #    - "'epoch_num' in v['metadata']"
 
 - KEY:
     NAME:  eval_stop
     REQ:   AT_LEAST_ONE_OR(block_stop)
-    CHECK:
-        - "'epoch_num' in v['metadata']"
+    #CHECK:
+    #    - "'epoch_num' in v['metadata']"
 
 - KEY:
     NAME:  train_samples
