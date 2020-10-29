@@ -6,7 +6,7 @@
 - KEY:
     NAME:  opt_name
     REQ:   EXACTLY_ONE
-    CHECK: " v['value'] in ['sgd', 'SGD'] "
+    CHECK: " v['value'] in ['sgd', 'SGD', 'SGDWD'] "
 
 - KEY:
     NAME:  opt_base_learning_rate
